@@ -7,9 +7,9 @@ Instant `svelte-check` typechecking and diagnostics in [SvelteKit](https://svelt
 Add `@ampcode/svelte-check-daemon` as a dependency to your project:
 
 ```bash
-npm install --save-dev svelte-check-daemon
+npm install --save-dev @ampcode/svelte-check-daemon
 # -or-
-pnpm add -D svelte-check-daemon
+pnpm add -D @ampcode/svelte-check-daemon
 ```
 
 Then update your `package.json` scripts to run `svelte-check-daemon start` alongside your dev server and `svelte-check-daemon check` to get results:
