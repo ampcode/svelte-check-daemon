@@ -12,17 +12,18 @@ npm install --save-dev svelte-check-daemon
 pnpm add -D svelte-check-daemon
 ```
 
-Then update your `package.json` scripts to run `svelte-check-daemon start` in the background (usually alongside your dev server) and `svelte-check-daemon check` to get results:
+Then update your `package.json` scripts to run `svelte-check-daemon start` alongside your dev server and `svelte-check-daemon check` to get results:
 
 ```json
 {
-    // ...
     "scripts": {
-        "dev": "svelte-check-daemon start --tsconfig tsconfig.json & vite dev",
+        "dev": "concurrently \"svelte-check-daemon start --tsconfig tsconfig.json\" \"vite dev\"",
         "check": "svelte-check-daemon check"
     }
 }
 ```
+
+This uses [concurrently](https://www.npmjs.com/package/concurrently) to run both processes and ensure the daemon is properly terminated when you stop the dev server.
 
 If the daemon isn't running, `svelte-check-daemon check` will just run `svelte-check`, which is a fallback in CI or if you've forgotten to run the daemon.
 
