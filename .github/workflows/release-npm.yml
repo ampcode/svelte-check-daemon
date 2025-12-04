@@ -1,0 +1,47 @@
+name: Release to npm
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if version changed
+        id: version-check
+        run: |
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          NPM_VERSION=$(npm view @ampcode/svelte-check-daemon version 2>/dev/null || echo "0.0.0")
+          if [ "$PACKAGE_VERSION" != "$NPM_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed: $NPM_VERSION -> $PACKAGE_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged: $PACKAGE_VERSION"
+          fi
+
+      - name: Setup pnpm
+        if: steps.version-check.outputs.changed == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        if: steps.version-check.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        if: steps.version-check.outputs.changed == 'true'
+        run: pnpm install
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.changed == 'true'
+        run: pnpm publish --access public --no-git-checks
