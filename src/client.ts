@@ -57,11 +57,15 @@ export function isDaemonRunning(workspacePath: string): boolean {
 
 export function runSvelteCheckDirectly(
     workspacePath: string,
-    tsconfigPath?: string
+    tsconfigPath?: string,
+    failOnWarnings?: boolean
 ): { success: boolean; output: string } {
     const args = ['--output', 'human'];
     if (tsconfigPath) {
         args.push('--tsconfig', tsconfigPath);
+    }
+    if (failOnWarnings) {
+        args.push('--fail-on-warnings');
     }
 
     const result = spawnSync('svelte-check', args, {
