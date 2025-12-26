@@ -32,13 +32,15 @@
     ],
     "scripts": {
         "build": "tsc",
-        "prepublishOnly": "pnpm build"
+        "prepublishOnly": "pnpm build",
+        "prepare": "pnpm build"
     },
     "peerDependencies": {
         "svelte-check": ">=4.0.0"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
-        "typescript": "^5.0.0"
+        "typescript": "^5.0.0",
+        "pnpm": "^10.0.0"
     }
 }
