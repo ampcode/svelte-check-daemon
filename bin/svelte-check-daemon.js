@@ -13,6 +13,7 @@ const command = args[0];
 function parseArgs() {
     let workspacePath = process.cwd();
     let tsconfigPath = undefined;
+    let failOnWarnings = false;
 
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--workspace' && args[i + 1]) {
@@ -21,10 +22,12 @@ function parseArgs() {
         } else if (args[i] === '--tsconfig' && args[i + 1]) {
             tsconfigPath = args[i + 1];
             i++;
+        } else if (args[i] === '--fail-on-warnings') {
+            failOnWarnings = true;
         }
     }
 
-    return { workspacePath, tsconfigPath };
+    return { workspacePath, tsconfigPath, failOnWarnings };
 }
 
 async function runDaemon() {
@@ -34,7 +37,7 @@ async function runDaemon() {
 }
 
 async function runCheck() {
-    const { workspacePath, tsconfigPath } = parseArgs();
+    const { workspacePath, tsconfigPath, failOnWarnings } = parseArgs();
 
     // In CI, always run svelte-kit sync first to ensure generated types are up to date
     if (process.env.CI || !isDaemonRunning(workspacePath)) {
@@ -52,7 +55,7 @@ async function runCheck() {
             console.error('\x1b[33m  Start the daemon with: svelte-check-daemon start\x1b[0m\n');
         }
 
-        const { success, output } = runSvelteCheckDirectly(workspacePath, tsconfigPath);
+        const { success, output } = runSvelteCheckDirectly(workspacePath, tsconfigPath, failOnWarnings);
         console.log(output);
         process.exit(success ? 0 : 1);
     }
@@ -84,7 +87,8 @@ async function runCheck() {
     }
 
     console.log(status.output);
-    process.exit(status.hasErrors ? 1 : 0);
+    const shouldFail = status.hasErrors || (failOnWarnings && status.hasWarnings);
+    process.exit(shouldFail ? 1 : 0);
 }
 
 function stopDaemon() {
@@ -139,9 +143,10 @@ Commands:
   status      Show daemon status
 
 Options:
-  --workspace <path>   Path to workspace (default: current directory)
-  --tsconfig <path>    Path to tsconfig.json
-  --help               Show this help message
+  --workspace <path>     Path to workspace (default: current directory)
+  --tsconfig <path>      Path to tsconfig.json
+  --fail-on-warnings     Exit with error code when there are warnings (check command only)
+  --help                 Show this help message
 `);
 }
 
