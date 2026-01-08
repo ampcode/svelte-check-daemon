@@ -49,6 +49,7 @@ export class SvelteCheckDaemon {
     }
 
     async start(): Promise<void> {
+        process.title = 'svelte-check-daemon';
         this.cleanup();
 
         fs.writeFileSync(this.pidPath, process.pid.toString());

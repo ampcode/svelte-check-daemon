@@ -50,14 +50,14 @@ If the daemon isn't running, `svelte-check-daemon check` will just run `svelte-c
 | -------- | --------------------------------------------------------------------------------------------------------------- |
 | `SIGHUP` | Restarts `svelte-check --watch`. Useful when you want to force a full recheck without restarting the daemon.   |
 
-To force a restart: `pkill -HUP -f svelte-check-daemon`
+To force a restart: `pkill -HUP svelte-check-daemon`
 
 ## AGENTS.md
 
 Add this to your project's `AGENTS.md` to help AI agents work with the daemon:
 
 ```markdown
-If svelte-check results seem stale, run `pkill -HUP -f svelte-check-daemon` to force a full recheck.
+If svelte-check results seem stale, run `pkill -HUP svelte-check-daemon` to force a full recheck.
 ```
 
 ## Environment variables
