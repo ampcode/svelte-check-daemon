@@ -61,6 +61,10 @@ export class SvelteCheckDaemon {
 
         process.on('SIGINT', () => this.shutdown());
         process.on('SIGTERM', () => this.shutdown());
+        process.on('SIGHUP', () => {
+            console.log('Received SIGHUP, restarting svelte-check...');
+            this.restartSvelteCheck();
+        });
     }
 
     private startBigChangesWatcher(): void {
