@@ -35,7 +35,7 @@ export class SvelteCheckDaemon {
     private lineBuffer: string = '';
     private workspacePath: string;
     private tsconfigPath: string | undefined;
-    private routeFileWatcher: fs.FSWatcher | null = null;
+    private routeFileWatchers: fs.FSWatcher[] = [];
     private gitHeadWatcher: fs.FSWatcher | null = null;
     private bigChangesWatcher: fs.FSWatcher | null = null;
     private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -55,7 +55,7 @@ export class SvelteCheckDaemon {
         fs.writeFileSync(this.pidPath, process.pid.toString());
 
         this.startSvelteCheck();
-        this.startRouteFileWatcher();
+        this.startRouteFileWatchers();
         this.startGitHeadWatcher();
         this.startBigChangesWatcher();
         await this.startServer();
@@ -152,24 +152,49 @@ export class SvelteCheckDaemon {
         this.startSvelteCheck();
     }
 
-    private startRouteFileWatcher(): void {
-        this.routeFileWatcher = fs.watch(
-            this.workspacePath,
-            { recursive: true },
-            (_eventType, filename) => {
-                if (filename && /\/\+[^/]+\.ts$/.test(filename)) {
-                    if (this.syncDebounceTimer) {
-                        clearTimeout(this.syncDebounceTimer);
-                    }
-                    this.syncDebounceTimer = setTimeout(() => {
-                        spawnSync('svelte-kit', ['sync'], {
-                            cwd: this.workspacePath,
-                            stdio: 'inherit'
-                        });
-                    }, 250);
-                }
+    private startRouteFileWatchers(): void {
+        const parseEnvList = (value: string) =>
+            value.split(',').map(p => p.trim()).filter(p => p.length > 0);
+
+        const watchConfigs: Array<{ dir: string; recursive: boolean; envVar: string }> = [
+            ...parseEnvList(process.env.WATCH_DIRS || '').map(dir => ({
+                dir,
+                recursive: false,
+                envVar: 'WATCH_DIRS'
+            })),
+            ...parseEnvList(process.env.WATCH_DIRS_RECURSIVE || '.').map(dir => ({
+                dir,
+                recursive: true,
+                envVar: 'WATCH_DIRS_RECURSIVE'
+            }))
+        ];
+
+        for (const { dir, recursive, envVar } of watchConfigs) {
+            const absoluteDir = path.resolve(this.workspacePath, dir);
+            if (!fs.existsSync(absoluteDir)) {
+                console.log(`${envVar}: directory ${absoluteDir} does not exist, skipping`);
+                continue;
             }
-        );
+
+            const watcher = fs.watch(
+                absoluteDir,
+                { recursive },
+                (_eventType, filename) => {
+                    if (filename && /\+[^/]+\.ts$/.test(filename)) {
+                        if (this.syncDebounceTimer) {
+                            clearTimeout(this.syncDebounceTimer);
+                        }
+                        this.syncDebounceTimer = setTimeout(() => {
+                            spawnSync('svelte-kit', ['sync'], {
+                                cwd: this.workspacePath,
+                                stdio: 'inherit'
+                            });
+                        }, 250);
+                    }
+                }
+            );
+            this.routeFileWatchers.push(watcher);
+        }
     }
 
     private startSvelteCheck(): void {
@@ -285,8 +310,8 @@ export class SvelteCheckDaemon {
         if (this.syncDebounceTimer) {
             clearTimeout(this.syncDebounceTimer);
         }
-        if (this.routeFileWatcher) {
-            this.routeFileWatcher.close();
+        for (const watcher of this.routeFileWatchers) {
+            watcher.close();
         }
         if (this.gitHeadWatcher) {
             this.gitHeadWatcher.close();
